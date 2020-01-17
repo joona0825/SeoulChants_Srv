@@ -19,8 +19,8 @@ type Song struct {
     Name        string      `json:"name"`
     Lyrics      string      `json:"lyrics"`
     Etc         string      `json:"etc"`
-    Youtube     string      `json:"youtube"`
-    Asset       string      `json:"asset"`
+    Youtube     *string     `json:"youtube"`
+    Asset       *string     `json:"asset"`
     Hot         bool        `json:"hot"`
     New         bool        `json:"new"`
 }
@@ -71,10 +71,11 @@ type Response struct {
 func init() {
     f, err := os.OpenFile("/home/joona0825/seoulchants_srv.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
     if err != nil {
-       log.Fatalf("error opening file: %v", err)
+       fmt.Println("Log file not found!")
+    } else {
+        log.SetOutput(f)
     }
 
-    log.SetOutput(f)
     log.Println("instance is now running!")
 }
 
@@ -261,9 +262,10 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
 
     err := db.QueryRow("select * from `seoul_chants_matches` where `date` > date_sub(now(), interval 2 hour) order by `date` asc limit 0,1").Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.messageSent, &match.Preview)
 
-    if strings.Contains(request.URL.Path, "fake") {
-        // placeholder를 위한 가짜 일정 구해오기
-        err = db.QueryRow("select * from `seoul_chants_matches` where `id` = 162 limit 0,1").Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.messageSent, &match.Preview)
+    path := strings.Replace(request.URL.Path, "/seoulchants/matches/next/", "", 1)
+    if len(path) != 0 {
+        // 특정한 id의 일정 구해오기
+        err = db.QueryRow("select * from `seoul_chants_matches` where `id` = ? limit 0,1", path).Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.messageSent, &match.Preview)
     }
 
     if err != nil {
