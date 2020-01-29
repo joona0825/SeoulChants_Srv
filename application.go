@@ -92,6 +92,7 @@ func main() {
 func database() *sql.DB {
     db, err := sql.Open("mysql", "services:XYDBFpZDQ9TG1YDz@tcp(127.0.0.1:3306)/services")
     if err != nil {
+        log.Println("Failed to open database!! " + err.Error())
         return nil
     }
 
@@ -161,7 +162,7 @@ func list(w http.ResponseWriter, request *http.Request) {
         // 선수 콜
         query = "select * from `seoul_chants` where `ord` >= 1000 order by `ord` asc"
     } else {
-        notFoundHandler(w)
+        notFoundHandler(w, request)
         return
     }
 
@@ -202,7 +203,7 @@ func info(w http.ResponseWriter, request *http.Request) {
     var song Song
     err := db.QueryRow("select * from `seoul_chants` where `id` = ?", path).Scan(&song.ID, &song.ord, &song.Name, &song.Lyrics, &song.Etc, &song.Youtube, &song.Asset, &song.Hot, &song.New)
     if err != nil {
-        notFoundHandler(w)
+        notFoundHandler(w, request)
         return
     }
 
@@ -325,11 +326,11 @@ func success(w http.ResponseWriter, data interface{}) {
 }
 
 // 404 에러 핸들러
-func notFoundHandler(w http.ResponseWriter) {
+func notFoundHandler(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(http.StatusNotFound)
     fmt.Fprint(w, "404 page not found")
 
-    log.Println("404 page not found")
+    log.Println("404 page not found: access tried to " + r.RequestURI)
 }
 
 // 500 에러 핸들러
