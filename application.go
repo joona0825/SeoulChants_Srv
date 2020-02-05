@@ -39,6 +39,7 @@ type Stadium struct {
 type Match struct {
     id          int
     Vs          string      `json:"vs"`
+    Abb         *string     `json:"abb"`
     Date        string      `json:"date"`
     Result      *string     `json:"result"`
     Highlight   *string     `json:"highlight"`
@@ -221,6 +222,28 @@ func matches(w http.ResponseWriter, request *http.Request) {
     }
     defer db.Close()
 
+    // 축악어 로드가 필요하면 리스트 불러오기
+    var abbr = make(map[string]*string)
+    abb, ok := request.URL.Query()["abb"]
+    if ok && abb[0] == "1" {
+        rows, err := db.Query("select `name`, `abb` from `seoul_chants_shortcut`")
+        if err != nil {
+            internalErrorHandler(w, "abb " + err.Error())
+            return
+        }
+        defer rows.Close()
+
+        for rows.Next() {
+            var name string
+            var abb *string
+
+            err := rows.Scan(&name, &abb)
+            if err == nil {
+                abbr[name] = abb
+            }
+        }
+    }
+
     rows, err := db.Query("select * from `seoul_chants_matches` where year(`date`) = ? order by `date` desc", season)
     if err != nil {
         internalErrorHandler(w, "matches " + err.Error())
@@ -239,6 +262,7 @@ func matches(w http.ResponseWriter, request *http.Request) {
         err := rows.Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.messageSent, &match.Preview)
         if err == nil {
             match.Home = (location == 1)
+            match.Abb = abbr[match.Vs]
             matches = append(matches, match)
         } else {
             log.Println("matches error: " + err.Error())
