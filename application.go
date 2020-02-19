@@ -103,6 +103,13 @@ func database() *sql.DB {
 // 토큰 등록
 func registerToken(w http.ResponseWriter, request *http.Request) {
     token := request.PostFormValue("token")
+    tokenType := request.PostFormValue("type")
+
+    // 기본 firebase
+    if len(tokenType) == 0 {
+        tokenType = "firebase"
+    }
+
     if len(token) > 0 {
         db := database()
         if db == nil {
@@ -112,29 +119,31 @@ func registerToken(w http.ResponseWriter, request *http.Request) {
         defer db.Close()
 
         var len int
-        // 저장된 토큰이 있는지 여부 판단
-        db.QueryRow("select COUNT(*) from `seoul_chants_tokens` where `token` = ?", token).Scan(&len)
 
-        var query string
+        // 저장된 토큰이 있는지 여부 판단
+        db.QueryRow("select COUNT(*) from `seoul_chants_tokens` where `token` = ? and `type` = ?", token, tokenType).Scan(&len)
+
         if len == 0 {
             // 기존에 등록된 토큰이 없음 -> insert 필요
-            query = "insert into `seoul_chants_tokens` (`token`, `last_active`) values (?, now())"
+            _, err := db.Exec("insert into `seoul_chants_tokens` (`type`, `token`, `last_active`) values (?, ?, now())", tokenType, token)
+            if err != nil {
+                internalErrorHandler(w, "execError " + err.Error())
+                return
+            }
         } else {
             // 기존에 등록된 토큰이 있음 -> last_active만 업데이트
-            query = "update `seoul_chants_tokens` set `last_active` = now() where `token` = ?"
-        }
-
-        _, err := db.Exec(query, token)
-        if err != nil {
-            internalErrorHandler(w, "execError" + err.Error())
-            return
+            _, err := db.Exec("update `seoul_chants_tokens` set `last_active` = now() where `token` = ? and `type` = ?", token, tokenType)
+            if err != nil {
+                internalErrorHandler(w, "execError" + err.Error())
+                return
+            }
         }
 
         success(w, nil)
         if len == 0 {
-            log.Println("new device registered: " + token)
+            log.Printf("new device registetred: %s (%s)\n", token, tokenType)
         } else {
-            log.Println("device updated: " + token)
+            log.Printf("        device updated: %s (%s)\n", token, tokenType)
         }
 
     } else {
@@ -263,6 +272,7 @@ func matches(w http.ResponseWriter, request *http.Request) {
         if err == nil {
             match.Home = (location == 1)
             match.Abb = abbr[match.Vs]
+            match.Lineup = nil      // 데이터 아끼기 위해 라인업은 생략하기..
             matches = append(matches, match)
         } else {
             log.Println("matches error: " + err.Error())
