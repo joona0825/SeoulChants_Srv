@@ -330,7 +330,7 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
     match.Stadium = &stadium
 
     // 이전 경기 목록
-    rows, _ := db.Query("select `date`, `result`, `highlight`, `competition`, `round` from `seoul_chants_matches` where `vs` = ? and `date` < ? order by `date` desc limit 0,5", match.Vs, match.Date)
+    rows, _ := db.Query("select `date`, `result`, `highlight`, `competition`, `round` from `seoul_chants_matches` where `vs` = ? and YEAR(`date`) > 1983 and `date` < ? order by `date` desc limit 0,5", match.Vs, match.Date)
     defer rows.Close()
 
     var previousMatches []Match
