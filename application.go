@@ -47,6 +47,7 @@ type Match struct {
     Round       string      `json:"round"`
     Home        bool        `json:"home"`
     Lineup      *string     `json:"lineup"`
+    LineupSub   *string     `json:"lineup_sub"`
     messageSent bool
     Preview     bool        `json:"preview_available"`
 
@@ -268,7 +269,7 @@ func matches(w http.ResponseWriter, request *http.Request) {
         // location이 0이면 원정 경기장, 1이면 홈 경기장, 나머지면 alternative stadium
         var location int
 
-        err := rows.Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.messageSent, &match.Preview)
+        err := rows.Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.LineupSub, &match.messageSent, &match.Preview)
         if err == nil {
             match.Home = (location == 1)
             match.Abb = abbr[match.Vs]
@@ -295,12 +296,12 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
     var match Match
     var location int    // location이 0이면 원정 경기장, 1이면 홈 경기장, 나머지면 alternative stadium
 
-    err := db.QueryRow("select * from `seoul_chants_matches` where `date` > date_sub(now(), interval 2 hour) order by `date` asc limit 0,1").Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.messageSent, &match.Preview)
+    err := db.QueryRow("select * from `seoul_chants_matches` where `date` > date_sub(now(), interval 2 hour) order by `date` asc limit 0,1").Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.LineupSub, &match.messageSent, &match.Preview)
 
     path := strings.Replace(request.URL.Path, "/seoulchants/matches/next/", "", 1)
     if len(path) != 0 {
         // 특정한 id의 일정 구해오기
-        err = db.QueryRow("select * from `seoul_chants_matches` where `id` = ? limit 0,1", path).Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.messageSent, &match.Preview)
+        err = db.QueryRow("select * from `seoul_chants_matches` where `id` = ? limit 0,1", path).Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.LineupSub, &match.messageSent, &match.Preview)
     }
 
     if err != nil {
