@@ -65,6 +65,7 @@ type MatchesResponse struct {
 type Response struct {
     Result      bool        `json:"result"`
     Data        interface{} `json:"data"`
+    MinVersion  string      `json:"minVersion"`
 }
 
 
@@ -356,7 +357,7 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
 func success(w http.ResponseWriter, data interface{}) {
     w.WriteHeader(http.StatusOK)
 
-    response, _ := json.Marshal(Response{Result: true, Data: data})
+    response, _ := json.Marshal(Response{Result: true, Data: data, MinVersion: "26"})
     fmt.Fprint(w, string(response))
 }
 
@@ -372,7 +373,7 @@ func notFoundHandler(w http.ResponseWriter, r *http.Request) {
 func internalErrorHandler(w http.ResponseWriter, message string) {
     w.WriteHeader(http.StatusInternalServerError)
 
-    response, _ := json.Marshal(Response{Result: false, Data: "서버 내부 오류가 발생했습니다."})
+    response, _ := json.Marshal(Response{Result: false, Data: "서버 내부 오류가 발생했습니다.", MinVersion: "26"})
     fmt.Fprint(w, string(response))
 
     log.Println("internalError: " + message)
