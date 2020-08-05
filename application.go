@@ -169,7 +169,7 @@ func list(w http.ResponseWriter, request *http.Request) {
     path := strings.Replace(request.URL.Path, "/seoulchants/list/", "", 1)
     if path == "chants" {
         // 응원가
-        query = "select * from `seoul_chants` where `ord` < 1000 order by `ord` asc"
+        query = "select * from `seoul_chants` where `ord` between 0 and 999 order by `ord` asc"
     } else if path == "playercall" {
         // 선수 콜
         query = "select * from `seoul_chants` where `ord` >= 1000 order by `ord` asc"
