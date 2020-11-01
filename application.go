@@ -315,18 +315,46 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
 
     // 경기 장소
     var stadium Stadium
-    if match.Home {
-        // 홈인 경우 고정된 값 사용
-        stadium.Name = "서울월드컵경기장"
-        stadium.Latitude = 37.5682588
-        stadium.Longitude = 126.8972774
+    // covid-19로 인해 중립경기로 열리는 경기들의 경기장 정보
+    if match.id == 229 {
+        // vs 베이징 home
+        stadium.Name = "Education City Stadium"
+        stadium.Latitude = 25.3107835
+        stadium.Longitude = 51.4222389
+    } else if match.id == 230 {
+        // vs 치앙라이 home
+        stadium.Name = "Jassim bin Hamad Stadium"
+        stadium.Latitude = 25.2674291
+        stadium.Longitude = 51.4842975
+    } else if match.id == 231 {
+        // vs 치앙라이 away
+        stadium.Name = "Jassim bin Hamad Stadium"
+        stadium.Latitude = 25.2674291
+        stadium.Longitude = 51.4842975
+    } else if match.id == 232 {
+        // vs 베이징 away
+        stadium.Name = "Jassim bin Hamad Stadium"
+        stadium.Latitude = 25.2674291
+        stadium.Longitude = 51.4842975
+    } else if match.id == 233 {
+        // vs 멜버른 away
+        stadium.Name = "Education City Stadium Stadium"
+        stadium.Latitude = 25.3107835
+        stadium.Longitude = 51.4222389
     } else {
-        // 원정인 경우 스타디움 가져오기
-        // location이 0이면 상대팀의 기본 홈 구장, 다른 값이면 alternative 구장
-        err := db.QueryRow("select * from `seoul_chants_stadiums` where `team` = ? and `alternative` = ? limit 0,1", match.Vs, (location != 0)).Scan(&stadium.id, &stadium.Name, &stadium.Latitude, &stadium.Longitude, &stadium.team, &stadium.alternative)
-        if err != nil {
-            // 경기장 정보를 받아오지 못함 -> 그냥 원정이라고만 표기
-            stadium.Name = "원정"
+        if match.Home {
+            // 홈인 경우 고정된 값 사용
+            stadium.Name = "서울월드컵경기장"
+            stadium.Latitude = 37.5682588
+            stadium.Longitude = 126.8972774
+        } else {
+            // 원정인 경우 스타디움 가져오기
+            // location이 0이면 상대팀의 기본 홈 구장, 다른 값이면 alternative 구장
+            err := db.QueryRow("select * from `seoul_chants_stadiums` where `team` = ? and `alternative` = ? limit 0,1", match.Vs, (location != 0)).Scan(&stadium.id, &stadium.Name, &stadium.Latitude, &stadium.Longitude, &stadium.team, &stadium.alternative)
+            if err != nil {
+                // 경기장 정보를 받아오지 못함 -> 그냥 원정이라고만 표기
+                stadium.Name = "원정"
+            }
         }
     }
     match.Stadium = &stadium
