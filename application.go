@@ -199,8 +199,7 @@ func list(w http.ResponseWriter, request *http.Request) {
     }
     defer rows.Close()
 
-
-    var songs []Song
+    songs := make([]Song, 0)
 
     for rows.Next() {
         var song Song
@@ -247,8 +246,8 @@ func matches(w http.ResponseWriter, request *http.Request) {
 
     // 축악어 로드가 필요하면 리스트 불러오기
     var abbr = make(map[string]*string)
-    abb := request.URL.Query()["abb"][0]
-    if abb == "1" {
+    _abb, hasQuery := request.URL.Query()["abb"]
+    if hasQuery && _abb[0] == "1" {
         rows, err := db.Query("select `name`, `abb` from `seoul_chants_shortcut`")
         if err != nil {
             internalErrorHandler(w, "abb " + err.Error())
@@ -274,7 +273,7 @@ func matches(w http.ResponseWriter, request *http.Request) {
     }
     defer rows.Close()
 
-    var matches []Match
+    matches := make([]Match, 0)
 
     for rows.Next() {
         var match Match
@@ -375,7 +374,7 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
     rows, _ := db.Query("select `date`, `result`, `highlight`, `competition`, `round` from `seoul_chants_matches` where `vs` = ? and YEAR(`date`) > 1983 and `date` < ? order by `date` desc limit 0,5", match.Vs, match.Date)
     defer rows.Close()
 
-    var previousMatches []Match
+    previousMatches := make([]Match, 0)
 
     for rows.Next() {
         var match Match
@@ -401,15 +400,17 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
     }
     defer db.Close()
 
-    player := request.URL.Query()["name"][0]
-    if len(player) == 0 {
+    _player, hasQuery := request.URL.Query()["name"]
+    if !hasQuery || len(_player[0]) == 0 {
         log.Println("player is empty")
         internalErrorHandler(w, "player is empty")
         return
     }
 
-    var starting    []PlayerHistoryMatch
-    var sub         []PlayerHistoryMatch
+    player := _player[0]
+
+    starting := make([]PlayerHistoryMatch, 0)
+    sub := make([]PlayerHistoryMatch, 0)
 
     // 선발 조회
     startingAppearanceRows, err := db.Query("select vs, competition, round from `seoul_chants_matches` where `lineup` like ? and YEAR(`date`) = ?", "%"+player+"%", YEAR)
