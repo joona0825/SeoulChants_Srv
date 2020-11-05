@@ -61,9 +61,17 @@ type MatchesResponse struct {
     Matches     []Match     `json:"matches"`
 }
 
+// PlayerHistoryMatch 선수 출장기록 내려줄때 어떤 경기인지 정보를 담는 구조체
+type PlayerHistoryMatch struct {
+    Vs          string      `json:"vs"`
+    Competition string      `json:"competition"`
+    Round       string      `json:"round"`
+}
+
+// PlayerHistoryResponse 선수 출장기록 조회 결과 반환을 위한 구조체
 type PlayerHistoryResponse struct {
-    Starting    []string    `json:"starting"`
-    Sub         []string    `json:"sub"`
+    Starting    []PlayerHistoryMatch    `json:"starting"`
+    Sub         []PlayerHistoryMatch    `json:"sub"`
 }
 
 // Response 서버 백엔드 결과를 반환하기 위한 구조체
@@ -400,16 +408,17 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
         return
     }
 
-    var response PlayerHistoryResponse
+    var starting    []PlayerHistoryMatch
+    var sub         []PlayerHistoryMatch
 
     // 선발 조회
-    startingAppearanceRows, err := db.Query("select vs from `seoul_chants_matches` where `lineup` like ? and YEAR(`date`) = ?", "%"+player+"%", YEAR)
+    startingAppearanceRows, err := db.Query("select vs, competition, round from `seoul_chants_matches` where `lineup` like ? and YEAR(`date`) = ?", "%"+player+"%", YEAR)
     if err == nil {
         for startingAppearanceRows.Next() {
-            var vs string
-            err := startingAppearanceRows.Scan(&vs)
+            var match PlayerHistoryMatch
+            err := startingAppearanceRows.Scan(&match.Vs, &match.Competition, &match.Round)
             if err == nil {
-                response.Starting = append(response.Starting, vs)
+                starting = append(starting, match)
             } else {
                 log.Println("startingAppearance error: " + err.Error())
             }
@@ -420,13 +429,13 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
     }
 
     // 교체 조회
-    subAppearanceRows, err := db.Query("select vs from `seoul_chants_matches` where `lineup_sub` like ? and YEAR(`date`) = ?", "%"+player+"%", YEAR)
+    subAppearanceRows, err := db.Query("select vs, competition, round from `seoul_chants_matches` where `lineup_sub` like ? and YEAR(`date`) = ?", "%"+player+"%", YEAR)
     if err == nil {
         for subAppearanceRows.Next() {
-            var vs string
-            err := subAppearanceRows.Scan(&vs)
+            var match PlayerHistoryMatch
+            err := subAppearanceRows.Scan(&match.Vs, &match.Competition, &match.Round)
             if err == nil {
-                response.Sub = append(response.Sub, vs)
+                sub = append(sub, match)
             } else {
                 log.Println("subAppearance error: " + err.Error())
             }
@@ -435,6 +444,10 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
     } else {
         log.Println("subAppearance error: " + err.Error())
     }
+
+    var response PlayerHistoryResponse
+    response.Starting = starting
+    response.Sub = sub
 
     success(w, response)
 }
