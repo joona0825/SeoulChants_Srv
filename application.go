@@ -403,7 +403,7 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
     var response PlayerHistoryResponse
 
     // 선발 조회
-    startingAppearanceRows, err := db.Query("select vs from `seoul_chants_matches` where `lineup` like %?% and YEAR(`date`) = ?", player, YEAR)
+    startingAppearanceRows, err := db.Query("select vs from `seoul_chants_matches` where `lineup` like '%?%' and YEAR(`date`) = ?", player, YEAR)
     if err == nil {
         for startingAppearanceRows.Next() {
             var vs string
@@ -420,7 +420,7 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
     }
 
     // 교체 조회
-    subAppearanceRows, err := db.Query("select vs from `seoul_chants_matches` where `lineup_sub` like %?% and YEAR(`date`) = ?", player, YEAR)
+    subAppearanceRows, err := db.Query("select vs from `seoul_chants_matches` where `lineup_sub` like '%?%' and YEAR(`date`) = ?", player, YEAR)
     if err == nil {
         for subAppearanceRows.Next() {
             var vs string
