@@ -399,30 +399,38 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
     var response PlayerHistoryResponse
 
     // 선발 조회
-    startingAppearanceRows, _ := db.Query("select vs from `seoul_chants_matches` where `lineup` like %?% and YEAR(`date`) = ?", player, YEAR)
-    for startingAppearanceRows.Next() {
-        var vs string
-        err := startingAppearanceRows.Scan(&vs)
-        if err == nil {
-            response.Starting = append(response.Starting, vs)
-        } else {
-            log.Println("startingAppearance error: " + err.Error())
+    startingAppearanceRows, err := db.Query("select vs from `seoul_chants_matches` where `lineup` like %?% and YEAR(`date`) = ?", player, YEAR)
+    if err == nil {
+        for startingAppearanceRows.Next() {
+            var vs string
+            err := startingAppearanceRows.Scan(&vs)
+            if err == nil {
+                response.Starting = append(response.Starting, vs)
+            } else {
+                log.Println("startingAppearance error: " + err.Error())
+            }
         }
+        startingAppearanceRows.Close()
+    } else {
+        log.Println("startingAppearance error: " + err.Error())
     }
-    startingAppearanceRows.Close()
 
     // 교체 조회
-    subAppearanceRows, _ := db.Query("select vs from `seoul_chants_matches` where `lineup_sub` like %?% and YEAR(`date`) = ?", player, YEAR)
-    for subAppearanceRows.Next() {
-        var vs string
-        err := subAppearanceRows.Scan(&vs)
-        if err == nil {
-            response.Sub = append(response.Sub, vs)
-        } else {
-            log.Println("subAppearance error: " + err.Error())
+    subAppearanceRows, err := db.Query("select vs from `seoul_chants_matches` where `lineup_sub` like %?% and YEAR(`date`) = ?", player, YEAR)
+    if err == nil {
+        for subAppearanceRows.Next() {
+            var vs string
+            err := subAppearanceRows.Scan(&vs)
+            if err == nil {
+                response.Sub = append(response.Sub, vs)
+            } else {
+                log.Println("subAppearance error: " + err.Error())
+            }
         }
+        subAppearanceRows.Close()
+    } else {
+        log.Println("subAppearance error: " + err.Error())
     }
-    subAppearanceRows.Close()
 
     success(w, response)
 }
