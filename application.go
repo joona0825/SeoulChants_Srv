@@ -239,8 +239,8 @@ func matches(w http.ResponseWriter, request *http.Request) {
 
     // 축악어 로드가 필요하면 리스트 불러오기
     var abbr = make(map[string]*string)
-    abb, ok := request.URL.Query()["abb"]
-    if ok && abb[0] == "1" {
+    abb := request.URL.Query()["abb"][0]
+    if abb == "1" {
         rows, err := db.Query("select `name`, `abb` from `seoul_chants_shortcut`")
         if err != nil {
             internalErrorHandler(w, "abb " + err.Error())
@@ -393,8 +393,12 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
     }
     defer db.Close()
 
-    player := request.URL.Query()["name"]
-
+    player := request.URL.Query()["name"][0]
+    if len(player) == 0 {
+        log.Println("player is empty")
+        internalErrorHandler(w, "player is empty")
+        return
+    }
 
     var response PlayerHistoryResponse
 
