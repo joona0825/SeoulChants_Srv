@@ -61,6 +61,11 @@ type MatchesResponse struct {
     Matches     []Match     `json:"matches"`
 }
 
+type PlayerHistoryResponse struct {
+    Starting    []string    `json:"starting"`
+    Sub         []string    `json:"sub"`
+}
+
 // Response 서버 백엔드 결과를 반환하기 위한 구조체
 type Response struct {
     Result      bool        `json:"result"`
@@ -68,7 +73,7 @@ type Response struct {
     MinVersion  string      `json:"minVersion"`
 }
 
-
+const YEAR = 2020
 
 
 func init() {
@@ -88,6 +93,7 @@ func main() {
     http.HandleFunc("/seoulchants/info/", info)
     http.HandleFunc("/seoulchants/matches/", matches)
     http.HandleFunc("/seoulchants/matches/next/", nextMatch)
+    http.HandleFunc("/seoulchants/player-history/", playerHistory)
     http.ListenAndServe(":9090", nil)
     log.Println("main() server started...")
 }
@@ -224,8 +230,6 @@ func info(w http.ResponseWriter, request *http.Request) {
 
 // 경기 목록
 func matches(w http.ResponseWriter, request *http.Request) {
-    const season = 2020
-
     db := database()
     if db == nil {
         internalErrorHandler(w, "db is nil")
@@ -255,7 +259,7 @@ func matches(w http.ResponseWriter, request *http.Request) {
         }
     }
 
-    rows, err := db.Query("select * from `seoul_chants_matches` where year(`date`) = ? order by `date` desc", season)
+    rows, err := db.Query("select * from `seoul_chants_matches` where year(`date`) = ? order by `date` desc", YEAR)
     if err != nil {
         internalErrorHandler(w, "matches " + err.Error())
         return
@@ -281,7 +285,7 @@ func matches(w http.ResponseWriter, request *http.Request) {
         }
     }
 
-    success(w, MatchesResponse{Season: season, Matches: matches})
+    success(w, MatchesResponse{Season: YEAR, Matches: matches})
 
 }
 
@@ -378,6 +382,49 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
     match.Previous = previousMatches
 
     success(w, match)
+}
+
+// 선수 출장 기록
+func playerHistory(w http.ResponseWriter, request *http.Request) {
+    db := database()
+    if db == nil {
+        internalErrorHandler(w, "db is nil")
+        return
+    }
+    defer db.Close()
+
+    player := request.URL.Query()["name"]
+
+
+    var response PlayerHistoryResponse
+
+    // 선발 조회
+    startingAppearanceRows, _ := db.Query("select vs from `seoul_chants_matches` where `lineup` like %?% and YEAR(`date`) = ?", player, YEAR)
+    for startingAppearanceRows.Next() {
+        var vs string
+        err := startingAppearanceRows.Scan(&vs)
+        if err == nil {
+            response.Starting = append(response.Starting, vs)
+        } else {
+            log.Println("startingAppearance error: " + err.Error())
+        }
+    }
+    startingAppearanceRows.Close()
+
+    // 교체 조회
+    subAppearanceRows, _ := db.Query("select vs from `seoul_chants_matches` where `lineup_sub` like %?% and YEAR(`date`) = ?", player, YEAR)
+    for subAppearanceRows.Next() {
+        var vs string
+        err := subAppearanceRows.Scan(&vs)
+        if err == nil {
+            response.Sub = append(response.Sub, vs)
+        } else {
+            log.Println("subAppearance error: " + err.Error())
+        }
+    }
+    subAppearanceRows.Close()
+
+    success(w, response)
 }
 
 
