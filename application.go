@@ -107,7 +107,7 @@ func main() {
 }
 
 func database() *sql.DB {
-    db, err := sql.Open("mysql", "services:XYDBFpZDQ9TG1YDz@tcp(127.0.0.1:3306)/services")
+    db, err := sql.Open("mysql", DB_USERNAME + ":" + DB_PASSWORD + "@tcp(127.0.0.1:3306)/" + DB_DATABASE)
     if err != nil {
         log.Println("Failed to open database!! " + err.Error())
         return nil
