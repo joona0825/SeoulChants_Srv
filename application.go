@@ -278,7 +278,7 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
         stadium.Longitude = 51.4842975
     } else if match.id == 233 {
         // vs 멜버른 away
-        stadium.Name = "Education City Stadium Stadium"
+        stadium.Name = "Education City Stadium"
         stadium.Latitude = 25.3107835
         stadium.Longitude = 51.4222389
     } else {
