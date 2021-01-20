@@ -11,7 +11,7 @@ import (
     "log"
 )
 
-const YEAR = 2020
+const YEAR = 2021
 
 func init() {
     f, err := os.OpenFile("/home/joona0825/seoulchants_srv.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
