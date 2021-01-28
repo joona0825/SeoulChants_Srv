@@ -8,11 +8,13 @@ import (
 )
 
 // 200 성공
-func success(w http.ResponseWriter, data interface{}) {
+func success(w http.ResponseWriter, data interface{}, path string) {
 	w.WriteHeader(http.StatusOK)
 
 	response, _ := json.Marshal(Response{Result: true, Data: data, MinVersion: "26"})
 	fmt.Fprint(w, string(response))
+
+	log.Println("success: " + path)
 }
 
 // 404 에러 핸들러

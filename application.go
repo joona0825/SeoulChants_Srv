@@ -84,7 +84,7 @@ func registerToken(w http.ResponseWriter, request *http.Request) {
             }
         }
 
-        success(w, nil)
+        success(w, nil, request.RequestURI)
         if len == 0 {
             log.Printf("new device registetred: %s (%s)\n", token, tokenType)
         } else {
@@ -140,7 +140,7 @@ func list(w http.ResponseWriter, request *http.Request) {
         }
     }
 
-    success(w, songs)
+    success(w, songs, request.RequestURI)
 }
 
 // 단일 응원가 내용
@@ -161,7 +161,7 @@ func info(w http.ResponseWriter, request *http.Request) {
         return
     }
 
-    success(w, song)
+    success(w, song, request.RequestURI)
 }
 
 // 경기 목록
@@ -221,7 +221,7 @@ func matches(w http.ResponseWriter, request *http.Request) {
         }
     }
 
-    success(w, MatchesResponse{Season: YEAR, Matches: matches})
+    success(w, MatchesResponse{Season: YEAR, Matches: matches}, request.RequestURI)
 
 }
 
@@ -247,7 +247,7 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
 
     if err != nil {
         // 다음 경기가 없음
-        success(w, nil)
+        success(w, nil, request.RequestURI)
         return
     }
 
@@ -317,7 +317,7 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
 
     match.Previous = previousMatches
 
-    success(w, match)
+    success(w, match, request.RequestURI)
 }
 
 // 선수 출장 기록
@@ -379,5 +379,5 @@ func playerHistory(w http.ResponseWriter, request *http.Request) {
     response.Starting = starting
     response.Sub = sub
 
-    success(w, response)
+    success(w, response, request.RequestURI)
 }
