@@ -28,7 +28,8 @@ type Match struct {
 	id          int
 	Vs          string      `json:"vs"`
 	Abb         *string     `json:"abb"`
-	Date        string      `json:"date"`
+	Date        *string     `json:"date"`
+	Time        *string     `json:"time"`
 	Result      *string     `json:"result"`
 	Highlight   *string     `json:"highlight"`
 	Competition string      `json:"competition"`

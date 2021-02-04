@@ -7,6 +7,7 @@ import (
     "net/http"
     "os"
     "strings"
+    "time"
 
     "log"
 )
@@ -27,7 +28,6 @@ func init() {
 func main() {
     http.HandleFunc("/seoulchants/register/", registerToken)
     http.HandleFunc("/seoulchants/list/", list)
-    http.HandleFunc("/seoulchants/info/", info)
     http.HandleFunc("/seoulchants/matches/", matches)
     http.HandleFunc("/seoulchants/matches/next/", nextMatch)
     http.HandleFunc("/seoulchants/player-history/", playerHistory)
@@ -112,10 +112,10 @@ func list(w http.ResponseWriter, request *http.Request) {
     path := strings.Replace(request.URL.Path, "/seoulchants/list/", "", 1)
     if path == "chants" {
         // 응원가
-        query = "select * from `seoul_chants` where `ord` between 0 and 999 order by `ord` asc"
+        query = "select `id`, `ord`, `name`, `lyrics`, `etc`, `youtube`, `asset`, `hot`, `new` from `seoul_chants` where `ord` between 0 and 999 order by `ord` asc"
     } else if path == "playercall" {
         // 선수 콜
-        query = "select * from `seoul_chants` where `ord` >= 1000 order by `ord` asc"
+        query = "select `id`, `ord`, `name`, `lyrics`, `etc`, `youtube`, `asset`, `hot`, `new` from `seoul_chants` where `ord` >= 1000 order by `ord` asc"
     } else {
         notFoundHandler(w, request)
         return
@@ -141,27 +141,6 @@ func list(w http.ResponseWriter, request *http.Request) {
     }
 
     success(w, songs, request.RequestURI)
-}
-
-// 단일 응원가 내용
-func info(w http.ResponseWriter, request *http.Request) {
-    db := database()
-    if db == nil {
-        internalErrorHandler(w, "db is nil")
-        return
-    }
-    defer db.Close()
-
-    path := strings.Replace(request.URL.Path, "/seoulchants/info/", "", 1)
-
-    var song Song
-    err := db.QueryRow("select * from `seoul_chants` where `id` = ?", path).Scan(&song.ID, &song.ord, &song.Name, &song.Lyrics, &song.Etc, &song.Youtube, &song.Asset, &song.Hot, &song.New)
-    if err != nil {
-        notFoundHandler(w, request)
-        return
-    }
-
-    success(w, song, request.RequestURI)
 }
 
 // 경기 목록
@@ -195,7 +174,7 @@ func matches(w http.ResponseWriter, request *http.Request) {
         }
     }
 
-    rows, err := db.Query("select * from `seoul_chants_matches` where year(`date`) = ? order by `date` desc", YEAR)
+    rows, err := db.Query("select `id`, `vs`, `date`, `dateTBA`, `timeTBA`, `result`, `highlight`, `competition`, `round`, `home`  from `seoul_chants_matches` where year(`date`) = ? order by `date` desc", YEAR)
     if err != nil {
         internalErrorHandler(w, "matches " + err.Error())
         return
@@ -209,12 +188,38 @@ func matches(w http.ResponseWriter, request *http.Request) {
 
         // location이 0이면 원정 경기장, 1이면 홈 경기장, 나머지면 alternative stadium
         var location int
-
-        err := rows.Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.LineupSub, &match.messageSent, &match.Preview)
+        var datetimeString string
+        var dateTBA, timeTBA bool
+        err := rows.Scan(&match.id, &match.Vs, &datetimeString, &dateTBA, &timeTBA, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location)
         if err == nil {
             match.Home = (location == 1)
             match.Abb = abbr[match.Vs]
             match.Lineup = nil      // 데이터 아끼기 위해 라인업은 생략하기..
+
+            datetimeTime, err := time.Parse("2006-01-02 15:04:05", datetimeString)
+            if err == nil {
+                dateString := datetimeTime.Format("2006-01-02")
+                timeString := datetimeTime.Format("15:04:05")
+
+                if dateTBA {
+                    match.Date = nil
+                    match.Time = nil
+                } else if timeTBA {
+                    match.Date = &dateString
+                    match.Time = nil
+                } else {
+                    match.Date = &dateString
+                    match.Time = &timeString
+                }
+            } else {
+                log.Println(err.Error())
+                match.Date = nil
+                match.Time = nil
+            }
+
+            // 구버전 호환을 위하여 date는 일단 overwrite 하도록 함
+            match.Date = &datetimeString
+
             matches = append(matches, match)
         } else {
             log.Println("matches error: " + err.Error())
@@ -237,12 +242,19 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
     var match Match
     var location int    // location이 0이면 원정 경기장, 1이면 홈 경기장, 나머지면 alternative stadium
 
-    err := db.QueryRow("select * from `seoul_chants_matches` where `date` > date_sub(now(), interval 2 hour) order by `date` asc limit 0,1").Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.LineupSub, &match.messageSent, &match.Preview)
-
     path := strings.Replace(request.URL.Path, "/seoulchants/matches/next/", "", 1)
+
+    var err error
+    var datetimeString string
+    var dateTBA, timeTBA bool
+
     if len(path) != 0 {
         // 특정한 id의 일정 구해오기
-        err = db.QueryRow("select * from `seoul_chants_matches` where `id` = ? limit 0,1", path).Scan(&match.id, &match.Vs, &match.Date, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.LineupSub, &match.messageSent, &match.Preview)
+        err = db.QueryRow("select `id`, `vs`, `date`, `dateTBA`, `timeTBA`, `result`, `highlight`, `competition`, `round`, `home`, `lineup`, `lineup_sub`, `message_sent`, `preview_available` from `seoul_chants_matches` where `id` = ? limit 0,1", path).
+            Scan(&match.id, &match.Vs, &datetimeString, &dateTBA, &timeTBA, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.LineupSub, &match.messageSent, &match.Preview)
+    } else {
+        err = db.QueryRow("select `id`, `vs`, `date`, `dateTBA`, `timeTBA`, `result`, `highlight`, `competition`, `round`, `home`, `lineup`, `lineup_sub`, `message_sent`, `preview_available` from `seoul_chants_matches` where `date` > date_sub(now(), interval 2 hour) order by `date` asc limit 0,1").
+            Scan(&match.id, &match.Vs, &datetimeString, &dateTBA, &timeTBA, &match.Result, &match.Highlight, &match.Competition, &match.Round, &location, &match.Lineup, &match.LineupSub, &match.messageSent, &match.Preview)
     }
 
     if err != nil {
@@ -252,6 +264,30 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
     }
 
     match.Home = (location == 1)
+
+    datetimeTime, err := time.Parse("2006-01-02 15:04:05", datetimeString)
+    if err == nil {
+        dateString := datetimeTime.Format("2006-01-02")
+        timeString := datetimeTime.Format("15:04:05")
+
+        if dateTBA {
+            match.Date = nil
+            match.Time = nil
+        } else if timeTBA {
+            match.Date = &dateString
+            match.Time = nil
+        } else {
+            match.Date = &dateString
+            match.Time = &timeString
+        }
+    } else {
+        log.Println(err.Error())
+        match.Date = nil
+        match.Time = nil
+    }
+
+    // 구버전 호환을 위하여 date는 일단 overwrite 하도록 함
+    match.Date = &datetimeString
 
     // 경기 장소
     var stadium Stadium
@@ -290,7 +326,8 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
         } else {
             // 원정인 경우 스타디움 가져오기
             // location이 0이면 상대팀의 기본 홈 구장, 다른 값이면 alternative 구장
-            err := db.QueryRow("select * from `seoul_chants_stadiums` where `team` = ? and `alternative` = ? limit 0,1", match.Vs, (location != 0)).Scan(&stadium.id, &stadium.Name, &stadium.Latitude, &stadium.Longitude, &stadium.team, &stadium.alternative)
+            err := db.QueryRow("select `id`, `name`, `latitude`, `longitude` from `seoul_chants_stadiums` where `team` = ? and `alternative` = ? limit 0,1", match.Vs, (location != 0)).
+                Scan(&stadium.id, &stadium.Name, &stadium.Latitude, &stadium.Longitude)
             if err != nil {
                 // 경기장 정보를 받아오지 못함 -> 그냥 원정이라고만 표기
                 stadium.Name = "원정"
