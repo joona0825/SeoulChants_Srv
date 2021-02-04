@@ -248,6 +248,7 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
     var datetimeString string
     var dateTBA, timeTBA bool
 
+    log.Printf("path: %s len %d", path, len(path))
     if len(path) != 0 {
         // 특정한 id의 일정 구해오기
         err = db.QueryRow("select `id`, `vs`, `date`, `dateTBA`, `timeTBA`, `result`, `highlight`, `competition`, `round`, `home`, `lineup`, `lineup_sub`, `message_sent`, `preview_available` from `seoul_chants_matches` where `id` = ? limit 0,1", path).
@@ -259,6 +260,7 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
 
     if err != nil {
         // 다음 경기가 없음
+        log.Println(err.Error())
         success(w, nil, request.RequestURI)
         return
     }
