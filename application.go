@@ -6,6 +6,7 @@ import (
     _ "github.com/go-sql-driver/mysql"
     "net/http"
     "os"
+    "strconv"
     "strings"
     "time"
 
@@ -220,6 +221,11 @@ func matches(w http.ResponseWriter, request *http.Request) {
             // 구버전 호환을 위하여 date는 일단 overwrite 하도록 함
             match.Date = &datetimeString
 
+            highlightUid, err := strconv.Atoi(*match.Highlight)
+            if err == nil {
+                *match.Highlight = fmt.Sprintf("https://m.sports.naver.com/video.nhn?id=%d", highlightUid)
+            }
+
             matches = append(matches, match)
         } else {
             log.Println("matches error: " + err.Error())
@@ -351,6 +357,11 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
             previousMatches = append(previousMatches, match)
         } else {
             log.Println("nextMatch previous match error: " + err.Error())
+        }
+
+        highlightUid, err := strconv.Atoi(*match.Highlight)
+        if err == nil {
+            *match.Highlight = fmt.Sprintf("https://m.sports.naver.com/video.nhn?id=%d", highlightUid)
         }
     }
 
