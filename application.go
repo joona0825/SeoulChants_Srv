@@ -221,9 +221,9 @@ func matches(w http.ResponseWriter, request *http.Request) {
             // 구버전 호환을 위하여 date는 일단 overwrite 하도록 함
             match.Date = &datetimeString
 
-            highlightUid, err := strconv.Atoi(*match.Highlight)
+            _, err = strconv.Atoi(*match.Highlight)
             if err == nil {
-                *match.Highlight = fmt.Sprintf("https://m.sports.naver.com/video.nhn?id=%d", highlightUid)
+                *match.Highlight = "https://m.sports.naver.com/video.nhn?id=" + *match.Highlight
             }
 
             matches = append(matches, match)
@@ -359,9 +359,9 @@ func nextMatch(w http.ResponseWriter, request *http.Request) {
             log.Println("nextMatch previous match error: " + err.Error())
         }
 
-        highlightUid, err := strconv.Atoi(*match.Highlight)
+        _, err = strconv.Atoi(*match.Highlight)
         if err == nil {
-            *match.Highlight = fmt.Sprintf("https://m.sports.naver.com/video.nhn?id=%d", highlightUid)
+            *match.Highlight = "https://m.sports.naver.com/video.nhn?id=" + *match.Highlight
         }
     }
 
