@@ -16,7 +16,7 @@ import (
 const YEAR = 2021
 
 func init() {
-    f, err := os.OpenFile("/home/joona0825/seoulchants_srv.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
+    f, err := os.OpenFile("/root/seoulchants_srv.log", os.O_RDWR | os.O_CREATE | os.O_APPEND, 0666)
     if err != nil {
        fmt.Println("Log file not found!")
     } else {
@@ -221,9 +221,11 @@ func matches(w http.ResponseWriter, request *http.Request) {
             // 구버전 호환을 위하여 date는 일단 overwrite 하도록 함
             match.Date = &datetimeString
 
-            _, err = strconv.Atoi(*match.Highlight)
-            if err == nil {
-                *match.Highlight = "https://m.sports.naver.com/video.nhn?id=" + *match.Highlight
+	    if match.Highlight != nil {
+		_, err = strconv.Atoi(*match.Highlight)
+                if err == nil {
+                    *match.Highlight = "https://m.sports.naver.com/video.nhn?id=" + *match.Highlight
+                }
             }
 
             matches = append(matches, match)
